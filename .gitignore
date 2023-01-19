@@ -1,0 +1,10 @@
+**/.DS_Store
+
+utils/model/local/twilio_bot.py
+.main.png
+.main.dot
+main.jir
+mydatabase
+train
+tfm_ner_model
+results
