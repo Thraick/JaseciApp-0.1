@@ -1,5 +1,6 @@
-node entity_response_root_t;
-node entity_response_t: has response;
+node _prompts;
+node _prompt: has response;
 
-edge entity_response_root_t;
-edge entity_response_t: has id;
+edge _prompts;
+edge _prompt: has id;
+

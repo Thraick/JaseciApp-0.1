@@ -1,8 +1,7 @@
 
-edge conv_root;
-edge dialogue_root;
+edge dialog;
 edge user;
-
+edge conv_root;
 
 edge intent_transition {
     has intent;
@@ -12,9 +11,17 @@ edge redirect_transition {
     has name;
 }
 
+edge redirect_confirm_transition {
+    has name;
+}
+
 edge entity_transition {
     has entities;
 }
 
-edge faq_root;
+edge faqs;
 edge faq;
+
+
+
+edge dialog;

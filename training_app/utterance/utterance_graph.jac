@@ -1,5 +1,5 @@
-node intent_utterance_root_t;
-node intent_utterance_t: has utterance;
+node _utterances;
+node _utterance: has utterance;
 
-edge intent_utterance_root_t;
-edge intent_utterance_t: has id;
+edge _utterances;
+edge _utterance: has id;

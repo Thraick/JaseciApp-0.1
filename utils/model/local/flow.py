@@ -33,9 +33,13 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 @jaseci_action(act_group=["flow"], allow_remote=True)
 def select_response(state_ext_item: dict, state_response: list, dial_context: dict):
 # def select_response(state_ext_item: dict, state_response: list, dial_context: dict, info_response:dict):
+    print(state_ext_item)
+    print(state_response)
+    print(dial_context)
 
     response_name = ""
     response = ""
+    dic = {}
     # if (info_response):
     #     for item in info_response:
     #         response_name = item
@@ -46,10 +50,17 @@ def select_response(state_ext_item: dict, state_response: list, dial_context: di
             if item not in context_key:
                 response_name = item
                 response = random.choice(state_ext_item[item])
+                dic["name"]= response_name
+                dic["response"]= response
                 break
     if response == "":
         response = random.choice(state_response)
-    return [response_name, response]
+        dic["name"]= response_name
+        dic["response"]= response
+    return dic
+    # return [response_name, response]
+
+
 
 
 
@@ -240,3 +251,18 @@ def select_options(response: str, my_dict: dict, variable:list):
     answer = l2.format(**new_dict)
 
     return answer
+
+
+
+
+
+@jaseci_action(act_group=["flow"], allow_remote=True)
+def check_required_entity(entity_list: list, ext_list: list):
+    result = False
+    for entity in entity_list:
+        if any(entity == i for i in ext_list):
+            result = True
+        else:
+            result = False
+            break
+    return result

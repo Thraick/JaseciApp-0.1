@@ -1,5 +1,5 @@
-node intent_root_t;
-node intent_t: has intent;
+node _intents;
+node _intent: has intent;
 
-edge intent_root_t;
-edge intent_t: has id;
+edge _intents;
+edge _intent: has id;

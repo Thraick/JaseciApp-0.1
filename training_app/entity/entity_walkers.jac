@@ -3,17 +3,17 @@ walker create_intent_entity{
     has entity;
     has anchor load_response;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t{
-        take -[intent_entity_root_t]-> node::intent_entity_root_t else { 
-            spawn here +[intent_entity_root_t]+> node::intent_entity_root_t; 
-            take -[intent_entity_root_t]-> node::intent_entity_root_t;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent{
+        take -[_entities]-> node::_entities else { 
+            spawn here +[_entities]+> node::_entities; 
+            take -[_entities]-> node::_entities;
         }
     }
-    intent_entity_root_t{
-        entity_list = -[intent_entity_t]->.entity;
+    _entities{
+        entity_list = -[_entity]->.entity;
         if !(entity){
             report:custom = "Missing required!";
         }
@@ -21,8 +21,8 @@ walker create_intent_entity{
             report:custom = {"error": "entity already exist! " + entity};
         }
         else{
-            nd = spawn node::intent_entity_t(entity = entity);
-            here +[intent_entity_t(id=nd.info['jid'])]+>nd;
+            nd = spawn node::_entity(entity = entity);
+            here +[_entity(id=nd.info['jid'])]+>nd;
             report:custom = {"jid":nd.info['jid'], "entity": nd.context.entity};
             if (load_response){
                 for response in load_response[entity]{
@@ -39,12 +39,12 @@ walker update_intent_entity{
     has jid;
     has entity;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t{ 
-        entity_list = -[intent_entity_t]->.entity;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_entities]-> node::_entities;
+    _entities{ 
+        entity_list = -[_entity]->.entity;
 
         if !(entity){
             report:custom = "Missing required!";
@@ -52,10 +52,10 @@ walker update_intent_entity{
         elif(entity in entity_list){
             report:custom = {"error": "entity already exist! " + entity};
         }
-        else: take -[intent_entity_t(id==jid)]->node::intent_entity_t else: report:custom = {"error": "jid not found!"};
+        else: take -[_entity(id==jid)]->node::_entity else: report:custom = {"error": "jid not found!"};
 
     }
-    intent_entity_t{
+    _entity{
         here.entity = entity;
         report:custom = custom = {"jid":here.info['jid'], "entity": here.entity};
     }
@@ -64,12 +64,12 @@ walker update_intent_entity{
 walker list_intent_entity{
     has payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t else: report:custom = {"error": "intent not found!"};
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t else: report:custom = {"error": "entity not found!"};
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent else: report:custom = {"error": "intent not found!"};
+    _intent: take -[_entities]-> node::_entities else: report:custom = {"error": "entity not found!"};
+    _entities: take -[_entity]-> node::_entity;
+    _entity{
         data={};
         data['jid']=here.info['jid'];
         data['entity']=here.entity;
@@ -87,12 +87,12 @@ walker get_intent_entity{
     has payload = [];
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t else: report:custom = {"error": "entity not found!"};
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_entities]-> node::_entities else: report:custom = {"error": "entity not found!"};
+    _entities: take -[_entity]-> node::_entity;
+    _entity{
         data={};
         data['jid']=here.info['jid'];
         data['entity']=here.entity;
@@ -111,12 +111,12 @@ walker get_intent_entity_list{
     has anchor payload = [];
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t else: report:custom = {"error": "entity not found!"};
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_entities]-> node::_entities else: report:custom = {"error": "entity not found!"};
+    _entities: take -[_entity]-> node::_entity;
+    _entity{
         // data={};
         // data['jid']=here.info['jid'];
         // data['entity']=here.entity;
@@ -134,12 +134,12 @@ walker get_intent_entity_list{
 walker delete_intent_entity{
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t(id==jid)]-> node::intent_entity_t else: report:custom = {"error": "jid not found!"};
-    intent_entity_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_entities]-> node::_entities;
+    _entities: take -[_entity(id==jid)]-> node::_entity else: report:custom = {"error": "jid not found!"};
+    _entity{
         report:custom = "entity deleted!";
         destroy here;
         disengage;

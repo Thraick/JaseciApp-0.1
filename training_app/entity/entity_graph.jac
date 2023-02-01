@@ -1,5 +1,5 @@
-node intent_entity_root_t;
-node intent_entity_t: has entity;
+node _entities;
+node _entity: has entity;
 
-edge intent_entity_root_t;
-edge intent_entity_t: has id;
+edge _entities;
+edge _entity: has id;

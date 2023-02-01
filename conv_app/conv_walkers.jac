@@ -1,29 +1,30 @@
 
+// spawn faq_state 
 walker ingest_faq {
     has kb_file;
 
     root: take -[conv_root]-> node::conv_root;
-    conv_root: take -[dialogue_root]-> node::dialogue_root;
-    dialogue_root: take -[intent_transition]-> node::faq_root;
-    faq_root {
+    conv_root: take -[dialog]-> node::dialog;
+    dialog: take -[intent_transition]-> node::faqs;
+    faqs {
         kb = file.load_json(global.train_faq_answer_path);
         for faq in kb {
             answer = faq["answer"];
-            std.out(answer);
-            spawn here +[faq]+> node::faq_state(name = "faq_state", answer=answer);
+            spawn here +[faq]+> node::faq(name = "faq", answer=answer);
 
         }
     }
 }
 
+// update user node
 walker maintainer {
     has prev_state;
-    // has skip_state;
     has dialogue_context;
     root: take -[conv_root]-> node::conv_root;
     conv_root: take -[user]-> node::user;
 }
 
+// create nodes and edges
 walker create_node_and_edge{
     has first_node = "";
     has second_node = "";
@@ -34,7 +35,7 @@ walker create_node_and_edge{
 
 
     with entry {
-        if(first_node == ""): first_node = global.dialogue_root;
+        if(first_node == ""): first_node = global.dialog;
         bienc = file.load_json(global.train_classifer_path);
 
 
@@ -98,6 +99,7 @@ walker create_node_and_edge{
     }
 }
 
+// get jac uuid work with walker create_node_and_edge
 walker get_jac_uuid{
     has anchor uuid;
     with entry{
@@ -106,28 +108,26 @@ walker get_jac_uuid{
     }
 }
 
-
+// talker 
 walker talk {
     has question, phone_number;
     has predicted_intent;
     has extracted_entities={};
     has dialogue_context ={};
-    // has skip_state = null;
+
     has response;
     has next_state;
     has prev_state;
     has cont_state;
     has respond = true;
-    // has media = "";
     has threshold = false;
 
     root: take -[conv_root]-> node::conv_root;
-    conv_root {
-        take -[user]-> node::user;
-    }
+    conv_root: take -[user]-> node::user;
     user {
         if(cont_state == ""): std.out('WALKER TALKER ERROR: cont_state is an EMPTY STR');
         take *(cont_state);
+        std.out("userrrrr");
     }
     dialogue_state {
         if (respond) {

@@ -3,11 +3,11 @@ walker create_faq{
     has question;
     has answer;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t{
-        question_list = -[faq_state_t]->.question;
-        answer_list = -[faq_state_t]->.answer;
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs{
+        question_list = -[_faq]->.question;
+        answer_list = -[_faq]->.answer;
         if !(question and answer){
             report:custom = {"payload": [], "error": "parameter is required!"};  
         }
@@ -20,8 +20,8 @@ walker create_faq{
         else{
             std.out(question);
             std.out(answer);
-            nd = spawn node::faq_state_t(question = question, answer = answer);
-            here +[faq_state_t(id=nd.info['jid'])]+>nd;
+            nd = spawn node::_faq(question = question, answer = answer);
+            here +[_faq(id=nd.info['jid'])]+>nd;
             payload = {"jid":nd.info['jid'], "question": nd.context.question, "answer": nd.context.answer};
             report:custom = {"payload": [payload], "error": ""};  
         }
@@ -33,13 +33,13 @@ walker update_faq{
     has answer;
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t{ 
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs{ 
         std.out(question);
         std.out(answer);
-        question_list = -[faq_state_t]->.question;
-        answer_list = -[faq_state_t]->.answer;
+        question_list = -[_faq]->.question;
+        answer_list = -[_faq]->.answer;
         if !(question or answer){
             report:custom = {"payload": [], "error": "parameter is required!"};  
         }
@@ -47,9 +47,9 @@ walker update_faq{
             ques = "Faq already exist! " + question.str;
             report:custom = {"error": ques, "payload": []};
         }
-        else: take -[faq_state_t(id==jid)]-> node::faq_state_t else: report:custom = {"error": "jid not found!"};
+        else: take -[_faq(id==jid)]-> node::_faq else: report:custom = {"error": "jid not found!"};
     }
-    faq_state_t{
+    _faq{
         if(question): here.question = question;
         if(answer): here.answer = answer;
         std.out(question);
@@ -61,10 +61,10 @@ walker update_faq{
 
 walker list_faq{
     has private payload = [];
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t: take -[faq_state_t]-> node::faq_state_t;
-    faq_state_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs: take -[_faq]-> node::_faq;
+    _faq{
         data = {};
         data['jid']=here.info['jid'];
         data["question"]=here.question;
@@ -83,10 +83,10 @@ walker get_faq{
     has jid;
     has private payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t: take -[faq_state_t(id==jid)]-> node::faq_state_t;
-    faq_state_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs: take -[_faq(id==jid)]-> node::_faq;
+    _faq{
         data = {};
         data['jid']=here.info['jid'];
         data["question"]=here.question;
@@ -104,10 +104,10 @@ walker get_faq{
 walker delete_faq{
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t: take -[faq_state_t(id==jid)]-> node::faq_state_t else: report:custom = {"error": "jid not found!"};
-    faq_state_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs: take -[_faq(id==jid)]-> node::_faq else: report:custom = {"error": "jid not found!"};
+    _faq{
         report:custom = "Faq deleted!";
         destroy here;
         disengage;

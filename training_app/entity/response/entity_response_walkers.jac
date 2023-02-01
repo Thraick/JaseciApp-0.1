@@ -2,20 +2,20 @@ walker create_entity_response{
     has jid;
     has response;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    // intent_entity_root_t: take --> node::intent_entity_t;
-    intent_entity_root_t: take -[intent_entity_t(id==jid)]-> node::intent_entity_t else: report:custom = {"error": "jid not found!"};
-    intent_entity_t{
-        take -[entity_response_root_t]-> node::entity_response_root_t else { 
-            spawn here +[entity_response_root_t]+> node::entity_response_root_t; 
-            take -[entity_response_root_t]-> node::entity_response_root_t;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_entities]-> node::_entities;
+    // _entities: take --> node::_entity;
+    _entities: take -[_entity(id==jid)]-> node::_entity else: report:custom = {"error": "jid not found!"};
+    _entity{
+        take -[_prompts]-> node::_prompts else { 
+            spawn here +[_prompts]+> node::_prompts; 
+            take -[_prompts]-> node::_prompts;
         }
     }
-    entity_response_root_t{
-        response_list = -[entity_response_t]->.response;
+    _prompts{
+        response_list = -[_prompt]->.response;
         if !(response){
             report:custom = "Missing required!";
         }
@@ -23,8 +23,8 @@ walker create_entity_response{
             report:custom = {"error": "response already exist! " + response};
         }
         else{
-            nd = spawn node::entity_response_t(response = response);
-            here +[entity_response_t(id=nd.info['jid'])]+>nd;
+            nd = spawn node::_prompt(response = response);
+            here +[_prompt(id=nd.info['jid'])]+>nd;
             report:custom = {"jid":nd.info['jid'], "response": nd.context.response};
         }
     }
@@ -35,23 +35,23 @@ walker update_entity_response{
     has jid;
     has response;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_response_root_t]-> node::entity_response_root_t;
-    entity_response_root_t{
-        response_list = -[entity_response_t]->.response;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_entities]-> node::_entities;
+    _entities: take -[_entity]-> node::_entity;
+    _entity: take -[_prompts]-> node::_prompts;
+    _prompts{
+        response_list = -[_prompt]->.response;
         if !(response){
             report:custom = "Missing required!";
         }
         elif(response in response_list){
             report:custom = {"error": "response already exist! " + response};
         }
-        else: take -[entity_response_t(id==jid)]-> node::entity_response_t else: report:custom = {"error": "jid not found!"};
+        else: take -[_prompt(id==jid)]-> node::_prompt else: report:custom = {"error": "jid not found!"};
     }
-    entity_response_t{
+    _prompt{
         here.response = response;
         report:custom = {"jid":here.info['jid'], "response": here.response};
     }
@@ -61,18 +61,18 @@ walker list_entity_response{
     has payload = [];
     has intents;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    // intent_t: take --> node::intent_entity_root_t;
-    intent_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    // _intent: take --> node::_entities;
+    _intent{
         intents = here.intent;
-        take -[intent_entity_root_t]-> node::intent_entity_root_t;
+        take -[_entities]-> node::_entities;
     }
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_response_root_t]-> node::entity_response_root_t;
-    entity_response_root_t: take -[entity_response_t]-> node::entity_response_t;
-    entity_response_t{
+    _entities: take -[_entity]-> node::_entity;
+    _entity: take -[_prompts]-> node::_prompts;
+    _prompts: take -[_prompt]-> node::_prompt;
+    _prompt{
         data={};
         data['jid']=here.info['jid'];
         data['intent']=intents;
@@ -91,15 +91,15 @@ walker get_entity_response{
     has jid;
     has payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_response_root_t]-> node::entity_response_root_t;
-    entity_response_root_t: take -[entity_response_t]-> node::entity_response_t;
-    entity_response_t{
-        entity = <-[entity_response_t]-<-[entity_response_root_t]-.entity;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_entities]-> node::_entities;
+    _entities: take -[_entity]-> node::_entity;
+    _entity: take -[_prompts]-> node::_prompts;
+    _prompts: take -[_prompt]-> node::_prompt;
+    _prompt{
+        entity = <-[_prompt]-<-[_prompts]-.entity;
         data={};
         data['jid']=here.info['jid'];
         data['intent']=entity[0];
@@ -118,14 +118,14 @@ walker get_entity_response_list{
     has jid;
     has anchor payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_response_root_t]-> node::entity_response_root_t;
-    entity_response_root_t{
-        res = -[entity_response_t]->.response;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_entities]-> node::_entities;
+    _entities: take -[_entity]-> node::_entity;
+    _entity: take -[_prompts]-> node::_prompts;
+    _prompts{
+        res = -[_prompt]->.response;
         payload.list::append(res);
     }
     with exit{
@@ -139,14 +139,14 @@ walker get_entity_response_list{
 walker delete_entity_response{
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_response_root_t]-> node::entity_response_root_t;
-    entity_response_root_t: take -[entity_response_t(id==jid)]-> node::entity_response_t else: report:custom = {"error": "jid not found!"};
-    entity_response_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_entities]-> node::_entities;
+    _entities: take -[_entity]-> node::_entity;
+    _entity: take -[_prompts]-> node::_prompts;
+    _prompts: take -[_prompt(id==jid)]-> node::_prompt else: report:custom = {"error": "jid not found!"};
+    _prompt{
         report:custom = "response deleted!";
         destroy here;
         disengage;

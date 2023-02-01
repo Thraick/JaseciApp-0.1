@@ -9,10 +9,10 @@ import {*} with "./conv_app/conv_graph.jac";
 
 
 // graph app_graph {
-//     has anchor training_root_t;
+//     has anchor _train;
 //     spawn {
-//         training_root_t = spawn node::training_root_t;
-//         // intent_root_t = spawn training_root_t ++> node::intent_root_t;
-//         // faq_root_1 = spawn training_root_t +[faq_root_1]+> node::faq_root_1;
+//         _train = spawn node::_train;
+//         // _intents = spawn _train ++> node::_intents;
+//         // faq_root_1 = spawn _train +[faq_root_1]+> node::faq_root_1;
 //     }
 // }

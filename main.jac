@@ -12,8 +12,8 @@ walker init {
     root{
         global.main_root = here.info["jid"];
 
-        take -[training_root_t]-> node::training_root_t else {
-            spawn here +[training_root_t]+> graph::training_graph;
+        take -[_train]-> node::_train else {
+            spawn here +[_train]+> graph::training_graph;
         }
 
         take -[conv_root]-> node::conv_root else {
@@ -21,15 +21,16 @@ walker init {
             take -[conv_root]-> node::conv_root;
         }
     }
+
     conv_root{
-        take -[dialogue_root]-> node::dialogue_root else{
-            spawn here +[dialogue_root]+> graph::dialogue_root;
+        take -[dialog]-> node::dialog else{
+            spawn here +[dialog]+> graph::dialogue_system;
             spawn here +[user]+> node::user;
             spawn here walker::ingest_faq;
-            take -[dialogue_root]-> node::dialogue_root;
+            take -[dialog]-> node::dialog;
         }
     }
-    dialogue_root{
-        global.dialogue_root = here.info['jid'];
+    dialog{
+        global.dialog = here.info['jid'];
     }
 }

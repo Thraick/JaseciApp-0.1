@@ -2,17 +2,17 @@ walker create_intent_utterance{
     has jid;
     has utterance;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t{
-        take -[intent_utterance_root_t]-> node::intent_utterance_root_t else { 
-            spawn here +[intent_utterance_root_t]+> node::intent_utterance_root_t; 
-            take -[intent_utterance_root_t]-> node::intent_utterance_root_t;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent{
+        take -[_utterances]-> node::_utterances else { 
+            spawn here +[_utterances]+> node::_utterances; 
+            take -[_utterances]-> node::_utterances;
         }
     }
-    intent_utterance_root_t{
-        utterance_list = -[intent_utterance_t]->.utterance;
+    _utterances{
+        utterance_list = -[_utterance]->.utterance;
         if !(utterance){
             report:custom = "Missing required!";
         }
@@ -20,8 +20,8 @@ walker create_intent_utterance{
             report:custom = {"error": "Utterance already exist! " + utterance};
         }
         else{
-            nd = spawn node::intent_utterance_t(utterance = utterance);
-            here +[intent_utterance_t(id=nd.info['jid'])]+>nd;
+            nd = spawn node::_utterance(utterance = utterance);
+            here +[_utterance(id=nd.info['jid'])]+>nd;
             report:custom = {"jid":nd.info['jid'], "utterance": nd.context.utterance};
         }
     }
@@ -31,12 +31,12 @@ walker update_intent_utterance{
     has jid;
     has utterance;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_utterance_root_t]-> node::intent_utterance_root_t;
-    intent_utterance_root_t{ 
-        utterance_list = -[intent_utterance_t]->.utterance;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_utterances]-> node::_utterances;
+    _utterances{ 
+        utterance_list = -[_utterance]->.utterance;
 
         if !(utterance){
             report:custom = "Missing required!";
@@ -44,10 +44,10 @@ walker update_intent_utterance{
         elif(utterance in utterance_list){
             report:custom = {"error": "Utterance already exist! " + utterance};
         }
-        else: take -[intent_utterance_t(id==jid)]->node::intent_utterance_t else: report:custom = {"error": "jid not found!"};
+        else: take -[_utterance(id==jid)]->node::_utterance else: report:custom = {"error": "jid not found!"};
 
     }
-    intent_utterance_t{
+    _utterance{
         here.utterance = utterance;
         report:custom = custom = {"jid":here.info['jid'], "utterance": here.utterance};
     }
@@ -56,12 +56,12 @@ walker update_intent_utterance{
 walker list_intent_utterance{
     has payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t else: report:custom = {"error": "intent not found!"};
-    intent_t: take -[intent_utterance_root_t]-> node::intent_utterance_root_t else: report:custom = {"error": "Utterance not found!"};
-    intent_utterance_root_t: take --> node::intent_utterance_t;
-    intent_utterance_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent else: report:custom = {"error": "intent not found!"};
+    _intent: take -[_utterances]-> node::_utterances else: report:custom = {"error": "Utterance not found!"};
+    _utterances: take --> node::_utterance;
+    _utterance{
         data={};
         data['jid']=here.info['jid'];
         data['utterance']=here.utterance;
@@ -80,12 +80,12 @@ walker get_intent_utterance{
     has payload = [];
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_utterance_root_t]-> node::intent_utterance_root_t else: report:custom = {"error": "Utterance not found!"};
-    intent_utterance_root_t: take --> node::intent_utterance_t;
-    intent_utterance_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_utterances]-> node::_utterances else: report:custom = {"error": "Utterance not found!"};
+    _utterances: take --> node::_utterance;
+    _utterance{
         data={};
         data['jid']=here.info['jid'];
         data['utterance']=here.utterance;
@@ -102,12 +102,12 @@ walker get_intent_utterance{
 walker delete_intent_utterance{
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_utterance_root_t]-> node::intent_utterance_root_t;
-    intent_utterance_root_t: take -[intent_utterance_t(id==jid)]-> node::intent_utterance_t else: report:custom = {"error": "jid not found!"};
-    intent_utterance_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_utterances]-> node::_utterances;
+    _utterances: take -[_utterance(id==jid)]-> node::_utterance else: report:custom = {"error": "jid not found!"};
+    _utterance{
         report:custom = "Utterance deleted!";
         destroy here;
         disengage;

@@ -1,6 +1,6 @@
 
 global main_root = '';
-global dialogue_root = '';
+global dialog = '';
 
 global faq_score = 0.2;
 global conv_score = 0.5;

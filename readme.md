@@ -51,7 +51,7 @@ walker run delete_entity_response -ctx "{\"jid\":\"urn:uuid:4e6e5e53-c1d4-45e5-a
 ## entity context - create context for entity
 walker run create_entity_context -ctx "{\"jid\":\"urn:uuid:cb26fa85-4522-4e4c-9d72-e1e9a79552b4\", \"utterance\":\"my number is 123\", \"entity_value\":\"123\"}"
 walker run update_entity_context -ctx "{\"jid\":\"urn:uuid:42152a54-cc40-41af-a7e4-8d547bbd65a4\", \"utterance\":\"my number is 1234\", \"entity_value\":\"1234\"}"
-walker run get_entity_context -ctx "{\"jid\":\"urn:uuid:9adae361-74d6-482d-9a9e-22cfe261714d\"}"
+walker run get_entity_context -ctx "{\"jid\":\"urn:uuid:e15cb400-cc10-41f4-9814-2d72d0cb0446\"}"
 walker run list_entity_context
 walker run delete_entity_context -ctx "{\"jid\":\"urn:uuid:83aa1cb8-5f96-49f3-840f-f1a266b544e9\"}"
 
@@ -82,7 +82,7 @@ walker run delete_faq -ctx "{\"jid\":\"urn:uuid:82b6070e-ffca-42f4-a20a-f17f09f2
 ### tfm_ner // note for some reason tfm_ner_train only work on the server 
 
 walker run tfm_ner_train -ctx "{\"train_file\": \"utils/data/tfm_train.json\"}"
-walker run tfm_ner_infer -ctx "{\"labels\": [\"number\",\"accountname\",\"month\",\"accountNumber\"]}"
+walker run tfm_ner_infer -ctx "{\"labels\": [\"number\",\"accountName\",\"month\",\"accountNumber\"]}"
 walker run tfm_ner_save_model -ctx "{\"model_path\": \"tfm_ner_model\"}"
 walker run tfm_ner_load_model -ctx "{\"model_path\": \"tfm_ner_model\"}"
 walker run tfm_ner_delete
@@ -96,4 +96,56 @@ walker run talk -ctx "{\"question\": \"I would like to see my account\"}"
 walker run talk -ctx "{\"question\": \"I would like to check my account\"}"
 walker run talk -ctx "{\"question\": \"My number is 2315555\"}"
 walker run talk -ctx "{\"question\": \"Where can I pay my bill?\"}"
+
+
+Jsserv makemigrations base
+Jsserv migrate
+Jsserv runserver 0.0.0.0:8099
+
+login http://0.0.0.0:8099/
+
+jac build main.jac
+sentinel set -snt active:sentinel -mode ir main.jir
+walker run init
+
+
+
+actions load module jaseci_ai_kit.zs_classifier
+actions load module jaseci_ai_kit.use_qa
+actions load module jaseci_ai_kit.bi_enc
+actions load module jaseci_ai_kit.tfm_ner
+actions load module jaseci_ai_kit.use_enc
+actions load local utils/model/local/flow.py
+actions load local utils/model/local/twilio_bot.py
+actions load local utils/model/local/local_module.py
+
+graph delete active:graph
+jac build main.jac
+graph create -set_active true
+sentinel register -set_active true -mode ir main.jir
+
+walker run init
+
+
+graph get -mode dot -o .main.dot
+dot -Tpng .main.dot -o .main.png
+
+pip install jaseci --upgrade
+pip install jaseci-ai-kit --upgrade
+pip install jaseci-serv --upgrade
+
+
+
+walker run ingest_faq
+
+walker run create_node_and_edge -ctx "{ \"intent\":\"greetings\",   \"template\":\"response_only\"}"
+walker run create_node_and_edge -ctx "{ \"intent\":\"goodbye\",     \"template\":\"response_only\"}"
+walker run create_node_and_edge -ctx "{ \"intent\":\"account\",     \"template\":\"collect_info\"}"
+
+walker run create_node_and_edge -ctx "{ \"first_node\":\"urn:uuid:450c75d7-1f02-43e0-970b-89e456a3e4eb\",   \"name\":\"number\", \"template\":\"extract_info\"}"
+walker run create_node_and_edge -ctx "{ \"first_node\":\"urn:uuid:99cf4389-a6a3-43d5-8819-5deb532a9415\",   \"second_node\":\"urn:uuid:d9424273-2966-465c-9c99-a40efd0a3a64\", \"intent\":\"faq_root\"}"
+
+walker run create_node_and_edge -ctx "{ \"first_node\":\"urn:uuid:99cf4389-a6a3-43d5-8819-5deb532a9415\",   \"second_node\":\"urn:uuid:99cf4389-a6a3-43d5-8819-5deb532a9415\", \"name\":\"number\"}"
+walker run create_node_and_edge -ctx "{ \"first_node\":\"urn:uuid:99cf4389-a6a3-43d5-8819-5deb532a9415\",   \"second_node\":\"urn:uuid:450c75d7-1f02-43e0-970b-89e456a3e4eb\", \"entities\": [\"number\"]}"
+
 

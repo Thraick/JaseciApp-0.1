@@ -4,17 +4,17 @@ walker create_intent_response{
     has jid;
     has response;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t{
-        take -[intent_response_root_t]-> node::intent_response_root_t else { 
-            spawn here +[intent_response_root_t]+> node::intent_response_root_t; 
-            take -[intent_response_root_t]-> node::intent_response_root_t;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent{
+        take -[_responses]-> node::_responses else { 
+            spawn here +[_responses]+> node::_responses; 
+            take -[_responses]-> node::_responses;
         }
     }
-    intent_response_root_t{
-        response_list = -[intent_response_t]->.response;
+    _responses{
+        response_list = -[_response]->.response;
         if !(response){
             report:custom = "Missing required!";
         }
@@ -22,8 +22,8 @@ walker create_intent_response{
             report:custom = {"error": "response already exist! " + response};
         }
         else{
-            nd = spawn node::intent_response_t(response = response);
-            here +[intent_response_t(id=nd.info['jid'])]+>nd;
+            nd = spawn node::_response(response = response);
+            here +[_response(id=nd.info['jid'])]+>nd;
             report:custom = {"jid":nd.info['jid'], "response": nd.context.response};
         }
     }
@@ -33,12 +33,12 @@ walker update_intent_response{
     has jid;
     has response;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_response_root_t]-> node::intent_response_root_t;
-    intent_response_root_t{ 
-        response_list = -[intent_response_t]->.response;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_responses]-> node::_responses;
+    _responses{ 
+        response_list = -[_response]->.response;
 
         if !(response){
             report:custom = "Missing required!";
@@ -46,10 +46,10 @@ walker update_intent_response{
         elif(response in response_list){
             report:custom = {"error": "response already exist! " + response};
         }
-        else: take -[intent_response_t(id==jid)]->node::intent_response_t else: report:custom = {"error": "jid not found!"};
+        else: take -[_response(id==jid)]->node::_response else: report:custom = {"error": "jid not found!"};
 
     }
-    intent_response_t{
+    _response{
         here.response = response;
         report:custom = custom = {"jid":here.info['jid'], "response": here.response};
     }
@@ -58,13 +58,13 @@ walker update_intent_response{
 walker list_intent_response{
     has payload = [];
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t else: report:custom = {"error": "intent not found!"};
-    intent_t: take -[intent_response_root_t]-> node::intent_response_root_t else: report:custom = {"error": "response not found!"};
-    intent_response_root_t: take -[intent_response_t]-> node::intent_response_t;
-    intent_response_t{
-        intent = <-[intent_response_t]-<-[intent_response_root_t]-.intent;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent else: report:custom = {"error": "intent not found!"};
+    _intent: take -[_responses]-> node::_responses else: report:custom = {"error": "response not found!"};
+    _responses: take -[_response]-> node::_response;
+    _response{
+        intent = <-[_response]-<-[_responses]-.intent;
         data={};
         data['jid']=here.info['jid'];
         data['intent']=intent[0];
@@ -84,13 +84,13 @@ walker get_intent_response{
     has payload = [];
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_response_root_t]-> node::intent_response_root_t else: report:custom = {"error": "response not found!"};
-    intent_response_root_t: take -[intent_response_t]-> node::intent_response_t;
-    intent_response_t{
-        intent = <-[intent_response_t]-<-[intent_response_root_t]-.intent;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_responses]-> node::_responses else: report:custom = {"error": "response not found!"};
+    _responses: take -[_response]-> node::_response;
+    _response{
+        intent = <-[_response]-<-[_responses]-.intent;
         data={};
         data['jid']=here.info['jid'];
         data['intent']=intent[0];
@@ -110,12 +110,12 @@ walker get_intent_response_list{
     has anchor payload = [];
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t(id==jid)]-> node::intent_t else: report:custom = {"error": "jid not found!"};
-    intent_t: take -[intent_response_root_t]-> node::intent_response_root_t else: report:custom = {"error": "response not found!"};
-    intent_response_root_t: take --> node::intent_response_t;
-    intent_response_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent(id==jid)]-> node::_intent else: report:custom = {"error": "jid not found!"};
+    _intent: take -[_responses]-> node::_responses else: report:custom = {"error": "response not found!"};
+    _responses: take --> node::_response;
+    _response{
         // data={};
         // data['jid']=here.info['jid'];
         // data['response']=here.response;
@@ -133,12 +133,12 @@ walker get_intent_response_list{
 walker delete_intent_response{
     has jid;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_response_root_t]-> node::intent_response_root_t;
-    intent_response_root_t: take -[intent_response_t(id==jid)]-> node::intent_response_t else: report:custom = {"error": "jid not found!"};
-    intent_response_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_responses]-> node::_responses;
+    _responses: take -[_response(id==jid)]-> node::_response else: report:custom = {"error": "jid not found!"};
+    _response{
         report:custom = "response deleted!";
         destroy here;
         disengage;

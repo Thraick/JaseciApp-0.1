@@ -13,12 +13,12 @@ walker upload_intent{
 
     can file.dump_json;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent{
         intent = here.intent;
-        utterance = -[intent_utterance_root_t]->-[intent_utterance_t]->.utterance;
+        utterance = -[_utterances]->-[_utterance]->.utterance;
         if(intent and utterance): payload[intent]=utterance;
     }
     with exit{
@@ -36,10 +36,10 @@ walker upload_state{
 
     can file.dump_json;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent{
         id = here.info['jid'];
         response_list = spawn *(global.main_root) walker::get_intent_response_list(jid=id);
 
@@ -90,19 +90,23 @@ walker upload_tfm{
 
     can file.dump_json;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t: take -[entity_context_root_t]-> node::entity_context_root_t;
-    entity_context_root_t: take -[entity_context_t]-> node::entity_context_t;
-    entity_context_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent: take -[_contexts]-> node::_contexts;
+    _contexts: take -[_context]-> node::_context;
+    _context{
+        // entity = <-[_context]-<-[_contexts]-.entity;
+        utt = here.utterance;
+        // value = '['+here.entity_value.str+']'+'('+here.entity_type.str+')';
+        // utt.str::replace(here.entity_value, value);
+        // payload.list::append(utt);
 
-        entity = <-[entity_context_t]-<-[entity_context_root_t]-.entity;
-        utt = here.entity_utterance;
-        value = '['+here.entity_value.str+']'+'('+entity[0].str+')';
-        utt.str::replace(here.entity_value, value);
+        // for i=0 to i < here.entity_value.length by i+=1 {
+        //     value = '['+here.entity_value[i].str+']'+'('+here.entity_type[i].str+')';
+        //     utt.str::replace(here.entity_value[i], value);
+        //     payload.list::append(utt);
+        // }
         payload.list::append(utt);
     }
     with exit{
@@ -120,10 +124,10 @@ walker upload_faq{
     
     can file.dump_json;
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t: take -[faq_state_t]-> node::faq_state_t;
-    faq_state_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs: take -[_faq]-> node::_faq;
+    _faq{
         data = {};
         data["question"]=here.question;
         data["answer"]=here.answer;
@@ -157,10 +161,10 @@ walker load_intent{
         }
     }
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent{
         for intent in json_data{
             if(here.intent == intent){
                 for utterance in json_data[intent]{
@@ -185,19 +189,19 @@ walker load_state{
         json_data = file.load_json(global.train_state_path);
     }
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t{
-        intent_list = -[intent_t]->.intent;
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents{
+        intent_list = -[_intent]->.intent;
         std.out(intent_list);
         for state in json_data{
             if!(state.name in intent_list){
                 spawn *(global.main_root) walker::create_intent(intent=state.name);
             }
         }
-        take -[intent_t]->node::intent_t;
+        take -[_intent]->node::_intent;
     }
-   intent_t{
+   _intent{
         for state in json_data{
             if(here.intent == state.name){
                 for response in state['responses']{
@@ -217,7 +221,7 @@ walker load_state{
                     // }
                 }
                 if(state['variable']){
-                    jid = -[intent_resource_root_t]->.edge.id;
+                    jid = -[_resource]->.edge.id;
                     std.out("jid\n");
                     std.out(jid[0]);
                     for variable in state['variable']{
@@ -251,19 +255,38 @@ walker load_tfm{
     }
 
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[intent_root_t]-> node::intent_root_t;
-    intent_root_t: take -[intent_t]-> node::intent_t;
-    intent_t: take -[intent_entity_root_t]-> node::intent_entity_root_t;
-    intent_entity_root_t: take -[intent_entity_t]-> node::intent_entity_t;
-    intent_entity_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_intents]-> node::_intents;
+    _intents: take -[_intent]-> node::_intent;
+    _intent{
+        entity_list= -[_entities]->-[_entity]->.entity;
+        // std.out('tfm\n\n');
+
         for tfm in res{
-            std.out(tfm);
-            if(here.entity == tfm.entity){
-                spawn *(global.main_root) walker::create_entity_context(jid= here.info['jid'], utterance= tfm.utterance, entity_value= tfm.value);
+            // for entity in tfm.entity{
+        // std.out(tfm.entity.length);
+        // std.out(tfm.entity);
+            for i=0 to i < tfm.entity.length by i+=1 {
+                // std.out("tfm.entity[i]");
+                // std.out(tfm.entity[i]);
+                if(tfm.entity[i] in entity_list){
+                    std.out(tfm.value[i]);
+                    spawn *(global.main_root) walker::create_entity_context(jid= here.info['jid'], utterance= tfm.utterance, entity_type=tfm.entity, entity_value= tfm.value);
+                }
             }
         }
     }
+    // _intent: take -[_contexts]-> node::_contexts;
+    // // _entities: take -[_entity]-> node::_entity;
+    // _contexts: take -[_context]-> node::_context;
+    // _context{
+    //     for tfm in res{
+    //         std.out(tfm);
+    //         if(here.entity_type == tfm.entity){
+    //             spawn *(global.main_root) walker::create_entity_context(jid= here.info['jid'], utterance= tfm.utterance, entity_type=tfm.entity, entity_value= tfm.value);
+    //         }
+    //     }
+    // }
     with exit{
         report:custom = "Entity context loaded!";
     }
@@ -279,9 +302,9 @@ walker load_faq{
         json_data = file.load_json(global.train_faq_answer_path);
     }
 
-    root: take -[training_root_t]-> node::training_root_t;
-    training_root_t: take -[faq_root_t]-> node::faq_root_t;
-    faq_root_t{
+    root: take -[_train]-> node::_train;
+    _train: take -[_faqs]-> node::_faqs;
+    _faqs{
         for item in json_data{
             spawn *(global.main_root) walker::create_faq(question=item.question, answer=item.answer);
         }
